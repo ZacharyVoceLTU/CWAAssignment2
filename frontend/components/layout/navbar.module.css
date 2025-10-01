@@ -1,0 +1,40 @@
+/* componenets/layout/navbar.module.css */
+
+.container {
+    padding: .5rem;
+    border-top: .3rem solid rgb(255, 255, 255);
+    border-bottom: .3rem solid rgb(255, 255, 255);
+    margin-left: 2vw;
+    margin-right: 2vw;
+}
+
+.link {
+    padding-left: 5vw;
+    padding-right: 5vw;
+}
+
+.activeLink {
+    /* When current tab highlight */
+    padding-left: 5vw;
+    padding-right: 5vw;
+    border: 3px solid purple;
+}
+
+.dark .container {
+    background-color: rgb(57, 57, 57);
+    border-top: .3rem solid white;
+    border-bottom: .3rem solid white;
+}
+
+.light .container {
+    background-color: rgb(255, 255, 255);
+    color: rgb(50, 50, 50);
+    border-top: .3rem solid black;
+    border-bottom: .3rem solid black;
+}
+
+.purple .container {
+    background-color: rgb(200, 0, 200);
+    border-top: .3rem solid white;
+    border-bottom: .3rem solid white;
+}

@@ -1,0 +1,38 @@
+/* components\layout\header.module.css */
+
+.container {
+    display: flex;
+    justify-content: space-between;
+    position: relative;
+    background-color: rgb(57, 57, 57);
+    height: 12vh;
+}
+
+.title {
+    font-size: 4rem;
+    margin-left: 10%;
+    position: absolute;
+    bottom: 0;
+    left: 10%;
+}
+
+.studentNo {
+    font-size: 1.5rem;
+    position: absolute; 
+    bottom: 10%;
+    right: 0;
+    margin-right: 5vh;
+}
+
+.dark .container {
+    background-color: #393939;
+}
+
+.light .container {
+    background-color: rgb(255, 255, 255);
+    color: rgb(50, 50, 50)
+}
+
+.purple .container {
+    background-color: rgb(200, 0, 200);
+}

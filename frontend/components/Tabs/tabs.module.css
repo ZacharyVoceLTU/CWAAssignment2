@@ -1,0 +1,96 @@
+/* Tabs.module.css */
+
+.tabsContainer {
+  padding: 1rem;
+}
+
+.container2 {
+  display: flex;
+  justify-content: space-between;
+}
+
+.tabButtons {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.tab {
+  padding: 0.25rem 0.75rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  border: 1px solid #ccc;
+  background-color: #393939;
+  display: flex;
+  align-items: center;
+  color: white;
+}
+
+.tabActive {
+  background-color: #3b82f6;
+  color: white;
+  border-color: #3b82f6;
+}
+
+.tab button {
+  margin-left: 0.5rem;
+  color: red;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+
+.deleteTabButton {
+  margin-left: 0.5rem;
+  color: red;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.tabContent {
+  border: 1px solid #ccc;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  background-color: #393939;
+  width: 45vw;
+}
+
+.outputWindow {
+  border: 1px solid #ccc;
+  width: 45vw;
+}
+
+.textarea {
+  width: 100%;
+  height: 10rem;
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 0.25rem;
+  resize: vertical;
+}
+
+.addTabButton {
+  padding: 0.25rem 0.75rem;
+  border-radius: 0.5rem;
+  background-color: #10b981;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+
+.addTabButton:hover {
+  background-color: #059669;
+}
+
+.tabTextarea {
+  width: 100%;
+  height: 10rem;
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 0.25rem;
+  resize: vertical;
+  font-family: inherit;
+  font-size: 1rem;
+}
