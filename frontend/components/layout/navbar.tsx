@@ -14,6 +14,7 @@ export default function NavBar({theme}: layoutProps) {
                 <nav className={styles.container}>
                     <Link href="/" className={styles.link}>Home</Link>
                     <Link href="/about" className={styles.link}>About</Link>
+                    <Link href="/escaperoom" className={styles.link}>Escape Room</Link>
                 </nav>
             </div>
         </>
