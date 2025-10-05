@@ -16,7 +16,8 @@
     gap: 10px;
 }
 
-.clear_button {
+.clear_button,
+.apply_button {
     border: 1px solid #ccc;
     border-radius: 5px;
 }
@@ -36,4 +37,18 @@
 
 .uploader_controls {
     display: flex;
+}
+
+.applied_image_area {
+    position: relative;
+    border: 2px dashed #ccc;
+    min-height: 100vh;
+    min-width: 100vh;
+    display: block;
+}
+
+.applied_image {
+    max-width: 200px;
+    height: auto;
+    z-index: 10;
 }
