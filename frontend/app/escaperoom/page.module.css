@@ -1,0 +1,28 @@
+/* app/escaperoom/page.module.css */
+
+.background_container {
+    position: relative;
+    padding-top: 61.62%; /* (631 / 1024) * 100 (imageHeight / imageWidth) * 100 */
+    width: 100%;
+}
+
+.background {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+
+    background-image: url('../../images/escapeRoomBackground.png');
+    background-size: cover;
+    background-position: center;
+}
+
+.topContainer {
+    background-color: rgb(122, 0, 0);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    width: 100%;
+    padding: 10px;
+}   

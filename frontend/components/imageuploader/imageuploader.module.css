@@ -1,0 +1,39 @@
+/* components/imageuploader/imageuploader.module.css */
+
+.image_container {
+    position: relative;
+
+    top: 5px;
+    right: 5px;
+
+    display: inline-block;
+}
+
+.image_header_container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+}
+
+.clear_button {
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+.browse_button {
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+.thumbnail_image {
+    width: 200px;
+    height: auto;
+    display: block;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+.uploader_controls {
+    display: flex;
+}
