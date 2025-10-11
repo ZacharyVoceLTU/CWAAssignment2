@@ -17,6 +17,10 @@ interface AppliedImage {
     fileName: string;
 }
 
+interface ImageUploaderProps {
+    timeLimitSeconds: number;
+}
+
 interface SelectedImageMetadata {
     url: string;
     hintText: string;
@@ -27,7 +31,7 @@ interface SelectedImageMetadata {
 
 const APIURL = "http://ec2-54-83-190-191.compute-1.amazonaws.com";
 
-const ImageUploader: React.FC = () => {
+const ImageUploader: React.FC<ImageUploaderProps> = ({timeLimitSeconds}) => {
     const [selectedImage, setSelectedImage] = useState<SelectedImageMetadata | null>(null);
     const [appliedImages, setAppliedImages] = useState<AppliedImage[]>([]);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -189,7 +193,7 @@ const ImageUploader: React.FC = () => {
 
     const handleExport = () => {
         // Pass the two necessary pieces of state to the external function
-        generateHTMLFile(appliedImages);
+        generateHTMLFile(appliedImages, timeLimitSeconds);
     };
 
     return (

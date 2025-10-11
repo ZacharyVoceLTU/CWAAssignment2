@@ -1,7 +1,16 @@
+// components/timer/timer.tsx
 import React, {useState, useEffect} from 'react';
 
-const Timer: React.FC = () => {
-    const [initialTime, setInitialTimer] = useState<number>(0);
+// --- NEW PROPS INTERFACE ---
+interface TimerProps {
+    initialTime: number;
+    setInitialTime: (time: number) => void;
+}
+// ---------------------------
+
+// Update component signature
+const Timer: React.FC<TimerProps> = ({ initialTime, setInitialTime }) => {
+    // initialTime is now a prop
     const [remainingTime, setRemainingTime] = useState<number>(0);
     const [isTimerRunning, setIsTimerRunning] = useState<boolean>(false);
 
@@ -12,7 +21,8 @@ const Timer: React.FC = () => {
             interval = setInterval(() => {
                 setRemainingTime(prevSeconds => prevSeconds - 1);
             }, 1000);
-        } else if (remainingTime < 0) {
+        } else if (remainingTime <= 0 && isTimerRunning) {
+            // Timer stopped in the builder UI
             setIsTimerRunning(false);
         }
 
@@ -21,10 +31,11 @@ const Timer: React.FC = () => {
                 clearInterval(interval);
             }
         };
-    }, [isTimerRunning]);
+    }, [isTimerRunning, remainingTime]);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setInitialTimer(Number(e.target.value));
+        // Use the prop setter to update the state in the parent (page.tsx)
+        setInitialTime(Number(e.target.value));
     }
 
     const startTimer = () => {

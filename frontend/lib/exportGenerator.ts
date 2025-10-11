@@ -16,7 +16,7 @@ interface AppliedImage {
  * Generates the playable HTML file for the escape room layout and triggers a download.
  * @param appliedImages The list of images with their coordinates and game data.
  */
-export const generateHTMLFile = (appliedImages: AppliedImage[]) => {
+export const generateHTMLFile = (appliedImages: AppliedImage[], timeLimitSeconds: number) => {
     if (appliedImages.length === 0) {
         alert("Please apply at least one image before exporting.");
         return;
@@ -71,11 +71,11 @@ export const generateHTMLFile = (appliedImages: AppliedImage[]) => {
     // --- 2. Define the JavaScript logic for the game ---
     const gameScript = `
 const TOTAL_PUZZLES = ${totalPuzzles};
-let timeLeft = 30; // 30 minutes in seconds. ADJUST THIS VALUE IF NEEDED!
+let timeLeft = ${timeLimitSeconds}; // 30 minutes in seconds. ADJUST THIS VALUE IF NEEDED!
 let timerInterval;
 
 function formatTime(seconds) {
-    const minutes = Math.floor(seconds / 60);
+    const minutes = Math.floor(seconds  / 60);
     const remainingSeconds = seconds % 60;
     const pad = (num) => String(num).padStart(2, '0');
     return \`\${pad(minutes)}:\${pad(remainingSeconds)}\`;
