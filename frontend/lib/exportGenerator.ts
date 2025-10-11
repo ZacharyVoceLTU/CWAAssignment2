@@ -23,7 +23,7 @@ export const generateHTMLFile = (appliedImages: AppliedImage[]) => {
     }
 
     const IMAGE_PATH_PREFIX = 'assets/images/'; 
-    const totalPuzzles = appliedImages.length; // Determine total puzzles
+    const totalPuzzles = appliedImages.length; 
 
     // --- 1. Generate the HTML/CSS for the individual interactive elements ---
     const imageElements = appliedImages.map(image => `
@@ -70,17 +70,47 @@ export const generateHTMLFile = (appliedImages: AppliedImage[]) => {
 
     // --- 2. Define the JavaScript logic for the game ---
     const gameScript = `
-// Global variable to track the total number of puzzles
 const TOTAL_PUZZLES = ${totalPuzzles};
+let timeLeft = 30; // 30 minutes in seconds. ADJUST THIS VALUE IF NEEDED!
+let timerInterval;
 
-// Function to check if all puzzles are solved
+function formatTime(seconds) {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    const pad = (num) => String(num).padStart(2, '0');
+    return \`\${pad(minutes)}:\${pad(remainingSeconds)}\`;
+}
+
+function updateTimerDisplay() {
+    document.getElementById('timer-display').textContent = formatTime(timeLeft);
+}
+
+function gameOver() {
+    clearInterval(timerInterval);
+    document.getElementById('game-over-screen').style.display = 'flex';
+    document.body.classList.add('game-ended');
+}
+
+function startTimer() {
+    updateTimerDisplay(); // Initial display
+
+    timerInterval = setInterval(() => {
+        timeLeft--;
+        updateTimerDisplay();
+
+        if (timeLeft <= 0) {
+            gameOver();
+        }
+    }, 1000);
+}
+
 function checkWinCondition() {
     const solvedCount = document.querySelectorAll('[data-solved="true"]').length;
     
     if (solvedCount === TOTAL_PUZZLES) {
-        // Show the win screen and stop the game
+        clearInterval(timerInterval); // Stop the timer on win
         document.getElementById('win-screen').style.display = 'flex';
-        // Optional: Hide all answer inputs/buttons if desired
+        document.body.classList.add('game-ended');
     }
 }
 
@@ -89,34 +119,37 @@ function checkAnswer(id) {
     const input = document.getElementById('input-' + id);
     const img = document.getElementById('img-' + id);
     
-    // Check if already solved
+    // Disable interactions if the game has ended (either win or loss)
+    if (document.body.classList.contains('game-ended')) {
+        return;
+    }
+
     if (container.getAttribute('data-solved') === 'true') {
         return; 
     }
 
-    // Get stored data
     const correctAnswer = container.getAttribute('data-answer');
     const playerAnswer = input.value.trim().toLowerCase();
     const clueText = container.getAttribute('data-clue');
     
-    // Check answer
     if (playerAnswer === correctAnswer) {
         alert('🎉 Correct! You found the clue: ' + clueText);
         img.style.border = '4px solid green';
         input.disabled = true;
         
-        // --- WIN LOGIC ---
-        container.setAttribute('data-solved', 'true'); // Mark this puzzle as solved
-        checkWinCondition(); // Check if the game is over
-        // ---------------
+        container.setAttribute('data-solved', 'true'); 
+        checkWinCondition(); 
     } else {
         alert('❌ Incorrect. Try again or look for a hint.');
         img.style.border = '4px solid red';
     }
 }
 
-// Optional: Show hint on image click
+// Start the timer when the page loads
 document.addEventListener('DOMContentLoaded', () => {
+    startTimer(); 
+    
+    // Optional: Show hint on image click
     document.querySelectorAll('.applied-image').forEach(img => {
         img.addEventListener('click', () => {
             const container = img.parentElement;
@@ -135,7 +168,6 @@ document.addEventListener('DOMContentLoaded', () => {
     <title>Exported Escape Room Layout</title>
     <style>
         body {
-            /* Clean background, no image reference */
             background-color: white; 
             width: 100vw;
             height: 100vh;
@@ -155,14 +187,28 @@ document.addEventListener('DOMContentLoaded', () => {
             padding: 5px;
             box-sizing: border-box;
         }
-        /* --- WIN SCREEN STYLE --- */
-        #win-screen {
+        /* Style for the Timer Display */
+        #timer-display {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            font-size: 48px;
+            font-weight: bold;
+            color: #d33; /* Red color for timer */
+            background: white;
+            padding: 5px 15px;
+            border: 2px solid #d33;
+            border-radius: 5px;
+            z-index: 1000;
+        }
+        /* Win and Game Over Screen Styles */
+        #win-screen, #game-over-screen {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0, 0, 0, 0.8);
+            background-color: rgba(0, 0, 0, 0.9);
             color: white;
             font-size: 40px;
             display: none; /* Starts hidden */
@@ -172,6 +218,8 @@ document.addEventListener('DOMContentLoaded', () => {
             z-index: 10000;
             flex-direction: column;
         }
+        #game-over-screen h1 { color: #f00; }
+        #win-screen h1 { color: #0f0; }
     </style>
 </head>
 <body>
@@ -181,10 +229,18 @@ document.addEventListener('DOMContentLoaded', () => {
         ${gameScript}
     </script>
 
+    <div id="timer-display">00:00</div>
+
     <div id="win-screen">
         <h1>CONGRATULATIONS!</h1>
         <p>You have solved all ${totalPuzzles} puzzles and escaped the room!</p>
         <p style="font-size: 20px;">🎉 Victory! 🎉</p>
+    </div>
+
+    <div id="game-over-screen">
+        <h1>TIME IS UP!</h1>
+        <p>You failed to escape the room in time.</p>
+        <p style="font-size: 20px;">Try again next time. 😭</p>
     </div>
 
     <div style="position:fixed; top:10px; right:10px; background:white; padding:15px; border:2px solid #333; box-shadow: 0 4px 8px rgba(0,0,0,0.2);">
