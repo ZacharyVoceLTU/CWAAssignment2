@@ -1,0 +1,53 @@
+/* components/imageMenu/imageMenu.module.css */
+
+.imageMenu {
+    background: white;
+    border: 1px solid #ccc;
+    box-shadow: 2px 2px 5px rgba(0, 0, 0, 0,2);
+    padding: 5px 0;
+    border-radius: 4px;
+    min-width: 150px;
+}
+
+.menuItem {
+    padding: 8px 12px;
+    cursor: pointer;
+    font-size: 14px;
+    color: #333;
+    transition: background-color 0.1s;
+}
+
+.menuItem:hover {
+    background-color: #f0f0f0;
+}
+
+.menuItem button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    width: 100%;
+    text-align: left;
+    padding: 0;
+    font-size: 14px;
+}
+
+.closeMenuItem {
+    border-top: 1px solid #eee;
+    padding-top: 5px;
+    padding-bottom: 5px
+}
+
+.closeButton {
+    background: #585858;
+    color: #333;
+    border-radius: 3px;
+    padding: 5px 10px;
+    margin: 0 10px;
+    display: block;
+    width: calc(100% - 20px);
+    font-weight: bold;
+}
+
+.closeButton:hover {
+    background: #c71b1b;
+}

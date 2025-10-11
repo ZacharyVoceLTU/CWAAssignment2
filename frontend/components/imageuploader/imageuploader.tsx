@@ -2,25 +2,42 @@
 
 import React, { useState, useRef, ChangeEvent } from 'react';
 import styles from '@/components/imageuploader/imageuploader.module.css';
+import ImageMenu from '../imageMenu/imageMenu';
 
 interface AppliedImage {
     id: number;
     url: string;
     x: number;
     y: number;
+    hintText: string;
+    clueText: string;
 }
 
+interface SelectedImageMetadata {
+    url: string;
+    hintText: string;
+    clueText: string;
+}
+
+const APIURL = "http://ec2-54-83-190-191.compute-1.amazonaws.com";
+
 const ImageUploader: React.FC = () => {
-    const [selectedImage, setSelectedImage] = useState<string | null>(null);
+    const [selectedImage, setSelectedImage] = useState<SelectedImageMetadata | null>(null);
     const [appliedImages, setAppliedImages] = useState<AppliedImage[]>([]);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [draggingImageId, setDraggingImageId] = useState<number | null>(null);
+
+    const [menu, setMenu] = useState<{id: number, x:number, y:number} | null>(null);
 
     const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
             const imageUrl = URL.createObjectURL(file);
-            setSelectedImage(imageUrl);
+            setSelectedImage({
+                url: imageUrl,
+                hintText: '',
+                clueText: '',
+            })
         }
     };
 
@@ -35,12 +52,29 @@ const ImageUploader: React.FC = () => {
         if (selectedImage && appliedImages.length < 3) {
             const newImage: AppliedImage = {
                 id: Date.now(),
-                url: selectedImage,
+                url: selectedImage.url,
                 x: 0, // Initial position
                 y: 0, // Initial position
+                hintText: selectedImage.hintText, // Save the data
+                clueText: selectedImage.clueText, // Save the data
             };
             setAppliedImages([...appliedImages, newImage]);
             clearImage();
+        }
+    };
+
+    const deleteImage = (imageId: number) => {
+        setAppliedImages(prevImages => prevImages.filter(image => image.id !== imageId));
+
+        setMenu(null);
+    }
+
+    const handleMetaDataChange = (field: keyof SelectedImageMetadata, value:string) => {
+        if (selectedImage) {
+            setSelectedImage({
+                ...selectedImage,
+                [field]: value,
+            });
         }
     };
 
@@ -72,6 +106,77 @@ const ImageUploader: React.FC = () => {
         setDraggingImageId(null);
     };
 
+    const closeMenu = () => {
+        setMenu(null);
+    };
+
+    const handleDoubleClick = (e: React.MouseEvent, imageId: number) => {
+        // stop event from propagating, can interfere with the drag
+
+        e.stopPropagation();
+
+        setMenu({
+            id: imageId,
+            x: e.clientX,
+            y: e.clientY,
+        });
+    };
+
+    // Have it update if id exists
+    const saveToDatabase = async() => {
+        try {
+            const response = await fetch(`${APIURL}/api/users/`, {  // Replace with api
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(appliedImages),
+            });
+            if (response.ok) {
+                console.log('Image positions saved successfully');
+            } else {
+                console.error('Failed to save image positions.');
+            }
+        } catch (error) {
+            console.error('Error saving image positions', error);
+        }
+    };
+
+    const deleteFromDatabase = async(id: number) => {
+        const response = await fetch(`${APIURL}/api/users?id=${id}`, {
+            method: 'DELETE',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({id}),
+        });
+
+        if (response.ok) {
+            console.log('Image positions deleted successfully');
+        }
+    }
+
+    // Update the image url, x, y
+    const updateDatabase = async(id: number) => {
+        // example for now
+        // const current = users.find((u) => u.id === id);
+        // if (!current) return;
+  
+        // const newStatus = current.lineStatus === 'online' ? 'offline' : 'online';
+  
+        // const res = await fetch(`${APIURL}/api/users?id=${id}`, {
+        //     method: 'PATCH',
+        //     headers: { 'Content-Type': 'application/json' },
+        //     body: JSON.stringify({ ...current, lineStatus: newStatus }),
+        // });
+  
+        // if (res.ok) {
+        //     fetchUsers(); // 🔁 Refetch after update
+        // }
+    }
+
+    const loadFromDatabase = async() => {
+        // Later
+    }
+
     return (
         <div>
             <div className={styles.uploader_controls}>
@@ -96,11 +201,32 @@ const ImageUploader: React.FC = () => {
                     </div>
                     <div className={styles.image_display_container}>
                         <img
-                            src={selectedImage}
+                            src={selectedImage.url}
                             alt="Selected"
                             className={styles.thumbnail_image}
                         />
                     </div>
+
+                    <div className={styles.metadata_inputs}>
+                        <label htmlFor="hintText">Hint Text:</label>
+                        <input
+                            id="hintText"
+                            type="text"
+                            value={selectedImage.hintText}
+                            onChange={(e) => handleMetaDataChange('hintText', e.target.value)}
+                            placeholder='Enter hint for the image'
+                        />
+
+                        <label htmlFor="clueText">Clue Text:</label>
+                        <input
+                            id="clueText"
+                            type="text"
+                            value={selectedImage.clueText}
+                            onChange={(e) => handleMetaDataChange('clueText', e.target.value)}
+                            placeholder='Enter the clue associated with this image'
+                        />
+                    </div>
+
                     <button
                         onClick={applyImage}
                         className={styles.apply_button}
@@ -132,9 +258,24 @@ const ImageUploader: React.FC = () => {
                         draggable='true'
                         onDragStart={(e) => handleDragStart(e, image.id)}
                         onDragEnd={handleDragEnd}
+                        onDoubleClick={(e) => handleDoubleClick(e, image.id)}
                     />
                 ))}
             </div>
+
+            {menu && menu.id && (
+                <ImageMenu
+                    image={appliedImages.find(img => img.id === menu.id)}
+                    x={menu.x}
+                    y={menu.y}
+                    onClose={closeMenu}
+                    onDelete={deleteImage}
+                />
+            )}
+
+            <button onClick={saveToDatabase}>
+                Save Room
+            </button>
         </div>
     );
 };
