@@ -11,12 +11,16 @@ interface AppliedImage {
     y: number;
     hintText: string;
     clueText: string;
+    answer: string;
+    fileName: string;
 }
 
 interface SelectedImageMetadata {
     url: string;
     hintText: string;
     clueText: string;
+    answer: string;
+    fileName: string
 }
 
 const APIURL = "http://ec2-54-83-190-191.compute-1.amazonaws.com";
@@ -37,6 +41,8 @@ const ImageUploader: React.FC = () => {
                 url: imageUrl,
                 hintText: '',
                 clueText: '',
+                answer: '',
+                fileName: file.name,
             })
         }
     };
@@ -57,6 +63,8 @@ const ImageUploader: React.FC = () => {
                 y: 0, // Initial position
                 hintText: selectedImage.hintText, // Save the data
                 clueText: selectedImage.clueText, // Save the data
+                answer: selectedImage.answer,
+                fileName: selectedImage.fileName,
             };
             setAppliedImages([...appliedImages, newImage]);
             clearImage();
@@ -177,6 +185,89 @@ const ImageUploader: React.FC = () => {
         // Later
     }
 
+// imageuploader.tsx
+
+const generateHTMLFile = () => {
+    if (appliedImages.length === 0) {
+        alert("Please apply at least one image before exporting.");
+        return;
+    }
+
+    // Recommended Folder Structure:
+    // - exported_room/
+    //   - escape_room_layout.html (This file)
+    //   - assets/images/ (Where user must manually place the files)
+
+    // The exported HTML will reference images from 'assets/images/filename.png'
+    const IMAGE_PATH_PREFIX = 'assets/images/'; 
+
+    // --- 1. Generate the HTML/CSS for the individual images ---
+    const imageElements = appliedImages.map(image => `
+<img 
+    src="${IMAGE_PATH_PREFIX}${image.fileName}" alt="Escape Room Element: ${image.fileName}"
+    class="applied-image"
+    style="
+        position: absolute;
+        left: ${image.x}px;
+        top: ${image.y}px;  
+        width: 150px; 
+        height: auto;
+        cursor: pointer;
+    "
+    data-hint="${image.hintText}"
+    data-clue="${image.clueText}"
+    data-answer="${image.answer}"
+>
+    `).join('');
+
+    // --- 2. Construct the full HTML document ---
+    const htmlContent = `
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Exported Escape Room Layout</title>
+    <style>
+        body {
+            /* Use the same relative path for the background */
+            background-image: url('${IMAGE_PATH_PREFIX}background_image.jpg'); 
+            background-size: cover;
+            background-repeat: no-repeat;
+            width: 100vw;
+            height: 100vh;
+            margin: 0;
+            position: relative;
+        }
+        /* ... rest of the CSS ... */
+    </style>
+</head>
+<body>
+    ${imageElements}
+    
+    <div style="position:fixed; top:10px; right:10px; background:white; padding:10px; border:1px solid red; font-size:12px;">
+        <h2>IMPORTANT: File Setup</h2>
+        <p>For this file to work, you must create a folder named <strong>'assets/images/'</strong> next to this HTML file and place all original images (including the background) inside it.</p>
+        <p><strong>Required Files:</strong></p>
+        <ul>
+            ${appliedImages.map(img => `<li>${img.fileName}</li>`).join('')}
+            <li>background_image.jpg (or whatever your background file is named)</li>
+        </ul>
+    </div>
+</body>
+</html>
+    `;
+
+    // --- 3. Create a Blob and trigger download ---
+    const blob = new Blob([htmlContent], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'escape_room_layout.html';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+};
+
     return (
         <div>
             <div className={styles.uploader_controls}>
@@ -224,6 +315,15 @@ const ImageUploader: React.FC = () => {
                             value={selectedImage.clueText}
                             onChange={(e) => handleMetaDataChange('clueText', e.target.value)}
                             placeholder='Enter the clue associated with this image'
+                        />
+
+                        <label htmlFor="answer">Answer:</label>
+                        <input
+                            id="answer"
+                            type="text"
+                            value={selectedImage.answer}
+                            onChange={(e) => handleMetaDataChange('answer', e.target.value)}
+                            placeholder='Enter the correct answer'
                         />
                     </div>
 
@@ -275,6 +375,9 @@ const ImageUploader: React.FC = () => {
 
             <button onClick={saveToDatabase}>
                 Save Room
+            </button>
+            <button onClick={generateHTMLFile} className={styles.export_button}>
+                Export HTML File
             </button>
         </div>
     );
