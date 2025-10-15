@@ -2,7 +2,7 @@
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up(queryInterface, Sequelize) {
-    await queryInterface.createTable('Users', {
+    await queryInterface.createTable('ERConfig', {
       id: {
         allowNull: false,
         autoIncrement: true,
@@ -10,10 +10,13 @@ module.exports = {
         type: Sequelize.INTEGER
       },
       name: {
-        type: Sequelize.STRING
+        type: Sequelize.STRING,
+        allowNull: false
       },
-      lineStatus: {
-        type: Sequelize.ENUM('online','offline')
+      appliedImagesData: {
+        type: Sequelize.JSON,
+        allowNull: true,
+        defaultValue: '[]'
       },
       createdAt: {
         allowNull: false,
@@ -26,6 +29,6 @@ module.exports = {
     });
   },
   async down(queryInterface, Sequelize) {
-    await queryInterface.dropTable('Users');
+    await queryInterface.dropTable('ERConfig');
   }
 };

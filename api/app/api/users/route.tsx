@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { User } from '@/app/lib/sequelize';
+import { ERConfig } from '@/app/lib/sequelize';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -20,15 +20,15 @@ export async function GET(request: NextRequest) {
   try {
     const id = request.nextUrl.searchParams.get('id');
     if (id) {
-      const user = await User.findByPk(parseInt(id));
-      if (!user) {
-        return new NextResponse('User not found', { status: 404, headers: corsHeaders });
+      const room = await ERConfig.findByPk(parseInt(id));
+      if (!room) {
+        return new NextResponse('Room not found', { status: 404, headers: corsHeaders });
       }
-      return NextResponse.json(user, { headers: corsHeaders });
+      return NextResponse.json(room, { headers: corsHeaders });
     }
 
-    const users = await User.findAll();
-    return NextResponse.json(users, { headers: corsHeaders });
+    const rooms = await ERConfig.findAll();
+    return NextResponse.json(rooms, { headers: corsHeaders });
   } catch (error) {
     console.error(error);
     return new NextResponse('Server error', { status: 500, headers: corsHeaders });
@@ -38,16 +38,20 @@ export async function GET(request: NextRequest) {
 // POST – Create new user
 export async function POST(request: NextRequest) {
   try {
-    const { name, lineStatus } = await request.json();
+    const { name, appliedImagesData } = await request.json();
 
-    if (!name || !lineStatus) {
-      return new NextResponse('Missing name or lineStatus', { status: 400, headers: corsHeaders });
+    if (!name || !appliedImagesData) {
+      return new NextResponse('Missing name or image configurations', { status: 400, headers: corsHeaders });
     }
 
-    const newUser = await User.create({
-        name, lineStatus,
+    if (!Array.isArray(appliedImagesData)) {
+      return new NextResponse('appliedImageData must be an array', {status: 400, headers: corsHeaders})
+    }
+
+    const newRoom = await ERConfig.create({
+        name, appliedImagesData,
     });
-    return NextResponse.json(newUser, { status: 201, headers: corsHeaders });
+    return NextResponse.json(newRoom, { status: 201, headers: corsHeaders });
   } catch (error) {
     console.error(error);
     return new NextResponse('Invalid request body', { status: 400, headers: corsHeaders });
@@ -62,17 +66,17 @@ export async function PATCH(request: NextRequest) {
       return new NextResponse('Missing id', { status: 400, headers: corsHeaders });
     }
 
-    const user = await User.findByPk(parseInt(id));
-    if (!user) {
+    const room = await ERConfig.findByPk(parseInt(id));
+    if (!room) {
       return new NextResponse('User not found', { status: 404, headers: corsHeaders });
     }
 
-    const { name, lineStatus } = await request.json();
-    if (name !== undefined) user.name = name;
-    if (lineStatus !== undefined) user.lineStatus = lineStatus;
+    const { name, appliedImagesData } = await request.json();
+    if (name !== undefined) room.name = name;
+    if (appliedImagesData !== undefined) room.appliedImagesData = appliedImagesData;
 
-    await user.save();
-    return NextResponse.json(user, { headers: corsHeaders });
+    await room.save();
+    return NextResponse.json(room, { headers: corsHeaders });
   } catch (error) {
     console.error(error);
     return new NextResponse('Invalid request', { status: 400, headers: corsHeaders });
@@ -87,12 +91,12 @@ export async function DELETE(request: NextRequest) {
       return new NextResponse('Missing id', { status: 400, headers: corsHeaders });
     }
 
-    const user = await User.findByPk(parseInt(id));
-    if (!user) {
+    const room = await ERConfig.findByPk(parseInt(id));
+    if (!room) {
       return new NextResponse('User not found', { status: 404, headers: corsHeaders });
     }
 
-    await user.destroy();
+    await room.destroy();
     return new NextResponse(null, { status: 204, headers: corsHeaders });
   } catch (error) {
     console.error(error);

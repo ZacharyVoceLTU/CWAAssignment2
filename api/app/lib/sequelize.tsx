@@ -4,6 +4,16 @@ import path from 'path';
 // Dynamically import sqlite3 to prevent bundling issues
 import sqlite3 from 'sqlite3';
 
+interface AppliedImage {
+    id: number;
+    x: number;
+    y: number;
+    hintText: string;
+    clueText: string;
+    answer: string;
+    fileName: string;
+}
+
 // SQLite setup with explicitly defined dialectModule
 export const sequelize = new Sequelize({
   dialect: 'sqlite',
@@ -13,18 +23,18 @@ export const sequelize = new Sequelize({
 });
 
 // Typed Sequelize User model
-export class User extends Model<
-  InferAttributes<User>,
-  InferCreationAttributes<User>
+export class ERConfig extends Model<
+  InferAttributes<ERConfig>,
+  InferCreationAttributes<ERConfig>
 > {
   declare id: CreationOptional<number>;
   declare name: string;
-  declare lineStatus: 'online' | 'offline';
+  declare appliedImagesData: AppliedImage[];
   declare createdAt: CreationOptional<Date>;
   declare updatedAt: CreationOptional<Date>;
 }
 
-User.init(
+ERConfig.init(
   {
     id: {
       type: DataTypes.INTEGER,
@@ -35,9 +45,10 @@ User.init(
       type: DataTypes.STRING,
       allowNull: false,
     },
-    lineStatus: {
-      type: DataTypes.ENUM('online', 'offline'),
+    appliedImagesData: {
+      type: DataTypes.JSON,
       allowNull: false,
+      defaultValue: []
     },
     // ✅ Optionally declare these to satisfy TypeScript
     createdAt: {
@@ -51,7 +62,7 @@ User.init(
   },
   {
     sequelize,
-    modelName: 'User',
+    modelName: 'ERConfig',
     timestamps: true,
   }
 );

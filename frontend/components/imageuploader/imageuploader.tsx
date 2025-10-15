@@ -138,13 +138,17 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({timeLimitSeconds}) => {
 
     // Have it update if id exists
     const saveToDatabase = async() => {
+        console.log(appliedImages)
         try {
             const response = await fetch(`${APIURL}/api/users/`, {  // Replace with api
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify(appliedImages),
+                body: JSON.stringify({
+                    name: 'd',
+                    appliedImagesData: appliedImages
+                }),
             });
             if (response.ok) {
                 console.log('Image positions saved successfully');

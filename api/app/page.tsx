@@ -29,7 +29,7 @@ const ApiDocumentation: React.FC = () => {
       <p>The request will return the HTML code in UTF-8 encoding.</p>
 
       <h3>1. GET Request</h3>
-      <p>Fetch user data:</p>
+      <p>Fetch Escape Room Data data:</p>
       <pre>
         <code>{`
           curl -X GET ${baseUrl}/api/users

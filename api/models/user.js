@@ -3,7 +3,7 @@ const {
   Model
 } = require('sequelize');
 module.exports = (sequelize, DataTypes) => {
-  class User extends Model {
+  class ERConfig extends Model {
     /**
      * Helper method for defining associations.
      * This method is not a part of Sequelize lifecycle.
@@ -13,12 +13,20 @@ module.exports = (sequelize, DataTypes) => {
       // define association here
     }
   }
-  User.init({
-    name: DataTypes.STRING,
-    lineStatus: DataTypes.ENUM
-  }, {
+
+  ERConfig.init({
+    name: {
+     type:  DataTypes.STRING,
+      allowNull: false
+  },
+  appliedImagesData: {
+    type: DataTypes.JSON,
+    allowNull: true,
+    defaultValue: []
+  }, 
+}, {
     sequelize,
-    modelName: 'User',
+    modelName: 'ERConfig',
   });
-  return User;
+  return ERConfig;
 };
