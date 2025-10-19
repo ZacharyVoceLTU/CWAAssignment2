@@ -64,7 +64,7 @@ const PRE_PICKED_IMAGES: AppliedImage[] = [
     },
 ];
 
-const APIURL = "http://ec2-54-174-23-135.compute-1.amazonaws.com";
+const APIURL = "http://ec2-54-162-37-116.compute-1.amazonaws.com:4080";
 
 const ImageUploader: React.FC<ImageUploaderProps> = ({timeLimitSeconds}) => {
     const [appliedImages, setAppliedImages] = useState<AppliedImage[]>(PRE_PICKED_IMAGES);

@@ -2,7 +2,7 @@
 
 import "./globals.css";
 
-import {useState} from 'react';
+import {useState, useEffect} from 'react';
 
 import Header from '@/components/layout/header';
 import Footer from '@/components/layout/footer';
@@ -13,6 +13,18 @@ import { HTML5Backend } from "react-dnd-html5-backend";
 
 export default function RootLayout({children,}: Readonly<{children: React.ReactNode;}>) {
   const [theme, setTheme] = useState<string>("dark");
+  const [hasMounted, setHasMounted] = useState(false); // 1. Initial state for server
+
+  useEffect(() => {
+    // 2. This only runs on the client after the initial render
+    setHasMounted(true); 
+    // ... Load theme from localStorage here ...
+  }, []);
+
+  // 3. Define the style: Use a neutral style for the server render
+  const dynamicStyle = hasMounted 
+    ? { background: theme === "dark" ? "black" : theme === "light" ? "white" : "purple" }
+    : { background: "transparent" };
 
   const changeTheme = (themeIs: string) => {
         if (themeIs === "light") setTheme("light");
@@ -24,7 +36,7 @@ export default function RootLayout({children,}: Readonly<{children: React.ReactN
       <html lang="en">
         <body>
           <DndProvider backend={HTML5Backend}>
-            <div style={theme === "dark" ? {background: "black"} : theme === "light" ? {background: "white"} : {background: "purple"}}>
+            <div style={dynamicStyle}>
             <HamburgerMenu changeTheme={changeTheme}></HamburgerMenu>
             <Header theme={theme}></Header>
             {children}

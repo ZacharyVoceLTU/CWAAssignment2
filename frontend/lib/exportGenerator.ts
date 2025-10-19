@@ -9,6 +9,7 @@ interface AppliedImage {
     hintText: string;
     clueText: string;
     answer: string;
+    isFlipped: boolean; 
     fileName: string; 
 }
 
@@ -23,17 +24,21 @@ export const generateHTMLFile = (appliedImages: AppliedImage[], timeLimitSeconds
     }
 
     const IMAGE_PATH_PREFIX = 'assets/images/'; 
+    const BACKGROUND_IMAGE_PATH = 'assets/background/room_background.png';
     const totalPuzzles = appliedImages.length; 
 
     // --- 1. Generate the HTML/CSS for the individual interactive elements ---
-    const imageElements = appliedImages.map(image => `
+    const imageElements = appliedImages.map(image => {
+        const flipStyle = image.isFlipped ? 'transform: scaleX(-1);' : '';
+        
+        return `
 <div 
     id="container-${image.id}"
     class="image-interactive-container"
     style="
         position: absolute;
         left: ${image.x}px; 
-        top: ${image.y}px;  
+        top: ${image.y}px;  
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -54,6 +59,7 @@ export const generateHTMLFile = (appliedImages: AppliedImage[], timeLimitSeconds
             cursor: pointer;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
             margin-bottom: 5px;
+            ${flipStyle}  
         "
     >
     <input 
@@ -66,16 +72,16 @@ export const generateHTMLFile = (appliedImages: AppliedImage[], timeLimitSeconds
         Check Answer
     </button>
 </div>
-    `).join('');
+    `}).join('');
 
     // --- 2. Define the JavaScript logic for the game ---
     const gameScript = `
 const TOTAL_PUZZLES = ${totalPuzzles};
-let timeLeft = ${timeLimitSeconds}; // 30 minutes in seconds. ADJUST THIS VALUE IF NEEDED!
+let timeLeft = ${timeLimitSeconds}; 
 let timerInterval;
 
 function formatTime(seconds) {
-    const minutes = Math.floor(seconds  / 60);
+    const minutes = Math.floor(seconds  / 60);
     const remainingSeconds = seconds % 60;
     const pad = (num) => String(num).padStart(2, '0');
     return \`\${pad(minutes)}:\${pad(remainingSeconds)}\`;
@@ -92,7 +98,7 @@ function gameOver() {
 }
 
 function startTimer() {
-    updateTimerDisplay(); // Initial display
+    updateTimerDisplay(); 
 
     timerInterval = setInterval(() => {
         timeLeft--;
@@ -108,7 +114,7 @@ function checkWinCondition() {
     const solvedCount = document.querySelectorAll('[data-solved="true"]').length;
     
     if (solvedCount === TOTAL_PUZZLES) {
-        clearInterval(timerInterval); // Stop the timer on win
+        clearInterval(timerInterval); 
         document.getElementById('win-screen').style.display = 'flex';
         document.body.classList.add('game-ended');
     }
@@ -119,7 +125,6 @@ function checkAnswer(id) {
     const input = document.getElementById('input-' + id);
     const img = document.getElementById('img-' + id);
     
-    // Disable interactions if the game has ended (either win or loss)
     if (document.body.classList.contains('game-ended')) {
         return;
     }
@@ -142,6 +147,19 @@ function checkAnswer(id) {
     } else {
         alert('❌ Incorrect. Try again or look for a hint.');
         img.style.border = '4px solid red';
+    }
+}
+
+// ✅ NEW: Function to toggle instructions visibility
+function toggleInstructions() {
+    const instructionsDiv = document.getElementById('game-instructions');
+    const button = document.getElementById('toggle-instructions-button');
+    if (instructionsDiv.style.display === 'none') {
+        instructionsDiv.style.display = 'block';
+        button.textContent = 'Hide Instructions';
+    } else {
+        instructionsDiv.style.display = 'none';
+        button.textContent = 'Show Instructions';
     }
 }
 
@@ -168,12 +186,19 @@ document.addEventListener('DOMContentLoaded', () => {
     <title>Exported Escape Room Layout</title>
     <style>
         body {
-            background-color: white; 
+            background-image: url('${BACKGROUND_IMAGE_PATH}');
+            background-size: cover;
+            background-repeat: no-repeat;
+            background-position: center center;
+            background-attachment: fixed;
+            
+            background-color: white; /* Fallback color */
             width: 100vw;
             height: 100vh;
             margin: 0;
             position: relative;
             font-family: sans-serif;
+            overflow: auto;
         }
         .image-interactive-container {
             transition: transform 0.2s;
@@ -194,7 +219,7 @@ document.addEventListener('DOMContentLoaded', () => {
             left: 10px;
             font-size: 48px;
             font-weight: bold;
-            color: #d33; /* Red color for timer */
+            color: #d33;
             background: white;
             padding: 5px 15px;
             border: 2px solid #d33;
@@ -211,7 +236,7 @@ document.addEventListener('DOMContentLoaded', () => {
             background-color: rgba(0, 0, 0, 0.9);
             color: white;
             font-size: 40px;
-            display: none; /* Starts hidden */
+            display: none; 
             justify-content: center;
             align-items: center;
             text-align: center;
@@ -220,6 +245,27 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         #game-over-screen h1 { color: #f00; }
         #win-screen h1 { color: #0f0; }
+        /* Style for the instruction box */
+        #instruction-box-wrapper {
+            position: fixed; 
+            top: 10px; 
+            right: 10px; 
+            z-index: 1000;
+        }
+        #toggle-instructions-button {
+            background-color: #4CAF50; /* Green */
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 4px;
+            margin-bottom: 5px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
     </style>
 </head>
 <body>
@@ -242,13 +288,18 @@ document.addEventListener('DOMContentLoaded', () => {
         <p>You failed to escape the room in time.</p>
         <p style="font-size: 20px;">Try again next time. 😭</p>
     </div>
-
-    <div style="position:fixed; top:10px; right:10px; background:white; padding:15px; border:2px solid #333; box-shadow: 0 4px 8px rgba(0,0,0,0.2);">
-        <h2>Game Instructions</h2>
-        <p>1. Click any image to reveal its hint (if provided).</p>
-        <p>2. Type your answer in the field and click 'Check Answer'.</p>
-        <p>3. Correct answers turn the image border green and reveal the final clue.</p>
-        <p style="color:red; font-weight:bold;">🚨 Remember: Place all puzzle images in a subfolder named 'assets/images/' next to this HTML file.</p>
+    
+    <div id="instruction-box-wrapper">
+        <button id="toggle-instructions-button" onclick="toggleInstructions()">Hide Instructions</button>
+        
+        <div id="game-instructions" style="background:white; padding:15px; border:2px solid #333; box-shadow: 0 4px 8px rgba(0,0,0,0.2);">
+            <h2>Game Instructions</h2>
+            <p>1. Click any image to reveal its hint (if provided).</p>
+            <p>2. Type your answer in the field and click 'Check Answer'.</p>
+            <p>3. Correct answers turn the image border green and reveal the final clue.</p>
+            <p style="color:red; font-weight:bold;">🚨 Remember: Place all puzzle images in a subfolder named 'assets/images/' next to this HTML file.</p>
+            <p style="color:red; font-weight:bold;">🚨 NEW: Place your background image in a subfolder named 'assets/background/' and name it 'room_background.jpg'.</p>
+        </div>
     </div>
 </body>
 </html>
