@@ -71,6 +71,14 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({timeLimitSeconds}) => {
     const [deletedImages, setDeletedImages] = useState<AppliedImage[]>([]);
     const [draggingImageId, setDraggingImageId] = useState<number | null>(null);
     const [menu, setMenu] = useState<{id: number, x:number, y:number} | null>(null);
+    const [isDirty, setIsDirty] = useState<boolean>(false);
+
+    const [currentRoomId, setCurrentRoomId] = useState<number | null>(null);
+    const [roomName, setRoomName] = useState<string>('New Escape Room');
+
+    const markAsDirty = () => {
+        setIsDirty(true);
+    };
 
     const deleteImage = (imageId: number) => {
     // 1. Find the image to be deleted
@@ -85,6 +93,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({timeLimitSeconds}) => {
         };
 
         setMenu(null);
+        markAsDirty();
     }; 
 
     const restoreImage = (imageId: number) => {
@@ -101,6 +110,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({timeLimitSeconds}) => {
                 return [...prevImages, imageToRestore].sort((a, b) => a.id - b.id);
             });
         }
+        markAsDirty();
     };
 
     const handleUpdateMetadata = (id: number, updatedMetadata: UpdatedMetadata) => {
@@ -109,6 +119,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({timeLimitSeconds}) => {
                 image.id === id ? { ...image, ...updatedMetadata } : image
             )
         );
+        markAsDirty();
     };
 
     const handleFlipImage = (imageId: number) => {
@@ -117,6 +128,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({timeLimitSeconds}) => {
                 image.id === imageId ? { ...image, isFlipped: !image.isFlipped } : image
             )
         );
+        markAsDirty();
     };
 
     // --- Native Drag-and-Drop Logic ---
@@ -145,6 +157,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({timeLimitSeconds}) => {
             )
         );
         setDraggingImageId(null);
+        markAsDirty();
     };
 
     const closeMenu = () => {
@@ -163,48 +176,68 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({timeLimitSeconds}) => {
         });
     };
 
+    const handleRoomNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setRoomName(e.target.value);
+        markAsDirty(); // 👈 Mark as dirty on every text input
+    }
+
     // Have it update if id exists
     const saveToDatabase = async() => {
-        console.log(appliedImages)
+        // If currentRoomId exists, call update, otherwise call create
+        if (currentRoomId !== null) {
+            // Existing update logic
+            await updateRoomInDatabase(currentRoomId, roomName); 
+            // Check if successful, then:
+            setIsDirty(false); // Reset on successful update
+            return;
+        }
+
+        // CREATE (POST) Logic
+        console.log(`Attempting to SAVE (CREATE) new room: ${roomName}`);
         try {
-            const response = await fetch(`${APIURL}/api/users/`, {  // Replace with api
+            const response = await fetch(`${APIURL}/api/users`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    // TODO: Add name option
-                    name: 'd',
+                    name: roomName, // Uses the user-chosen name
                     appliedImagesData: appliedImages
                 }),
             });
             if (response.ok) {
-                console.log('Image positions saved successfully');
+                const result = await response.json();
+                // 💡 ASSUMES your backend returns { id: newId, ... }
+                console.log(`Room configuration saved successfully. ID: ${result.id}`);
+                setCurrentRoomId(result.id); // Set the new ID
+                setIsDirty(false);
             } else {
-                console.error('Failed to save image positions.');
+                console.error('Failed to save room configuration.');
             }
         } catch (error) {
-            console.error('Error saving image positions', error);
+            console.error('Error saving room configuration', error);
         }
     };
 
-    const deleteRoomFromDatabase = async (roomId: number) => {
-        // 💡 IMPORTANT: Use the correct API path (e.g., /api/erconfig)
+    // REPLACE YOUR EXISTING deleteRoomFromDatabase with this:
+    const deleteRoomFromDatabase = async () => {
+        if (currentRoomId === null) {
+            console.warn('Cannot delete: No room ID is currently loaded.');
+            return;
+        }
+
+        console.log(`Attempting to DELETE room ID: ${currentRoomId}`);
         try {
-            const response = await fetch(`${APIURL}/api/users?id=${roomId}`, {
+            const response = await fetch(`${APIURL}/api/users?id=${currentRoomId}`, {
                 method: 'DELETE',
-                // No body is strictly required for DELETE with a query parameter ID
             });
 
             if (response.ok) {
-                console.log(`Room configuration ID ${roomId} deleted successfully.`);
-                // After successful deletion, you would typically clear the local state
+                console.log(`Room configuration ID ${currentRoomId} deleted successfully.`);
                 setAppliedImages(PRE_PICKED_IMAGES); 
                 setDeletedImages([]);
-                // TODO: Add roomId
-                // setCurrentRoomId(null);
+                setCurrentRoomId(null); // 🗑️ Clear the ID
+                setRoomName('New Escape Room'); // 🗑️ Reset the name
             } else {
-                console.error(`Failed to delete room ID ${roomId}. Status: ${response.status}`);
+                console.error(`Failed to delete room ID ${currentRoomId}. Status: ${response.status}`);
             }
         } catch (error) {
             console.error('Error deleting room configuration:', error);
@@ -213,16 +246,14 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({timeLimitSeconds}) => {
 
     // Update the image url, x, y
     const updateRoomInDatabase = async (roomId: number, roomName: string) => {
-        // 💡 IMPORTANT: Use the correct API path and PATCH method
+        console.log(`Attempting to UPDATE room ID: ${roomId} with name: ${roomName}`);
         try {
             const response = await fetch(`${APIURL}/api/users?id=${roomId}`, {
                 method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    name: roomName, // Send the name if it can be updated
-                    appliedImagesData: appliedImages, // Send the full, current state
+                    name: roomName, // Uses the user-chosen name
+                    appliedImagesData: appliedImages, 
                 }),
             });
             
@@ -237,18 +268,20 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({timeLimitSeconds}) => {
     };
 
     const loadRoomFromDatabase = async (roomId: number) => {
-        // 💡 IMPORTANT: Use the correct API path and GET method
+        console.log(`Attempting to LOAD room ID: ${roomId}`);
         try {
-            const response = await fetch(`${APIURL}/api/erconfig?id=${roomId}`);
+            const response = await fetch(`${APIURL}/api/users?id=${roomId}`);
             
             if (response.ok) {
                 const roomData = await response.json();
                 console.log(`Room configuration ID ${roomId} loaded successfully.`);
                 
-                // TODO: Set local state with the data from the database
-                // setAppliedImages(roomData.appliedImagesData || []);
-                // setCurrentRoomId(roomId); 
-                // setDeletedImages([]); // Clear any temporary deleted images
+                // 🥳 Set local state with the loaded data
+                setAppliedImages(roomData.appliedImagesData || []);
+                setCurrentRoomId(roomId); 
+                setRoomName(roomData.name || 'Untitled Room'); // Set the loaded room name
+                setDeletedImages([]); 
+                setIsDirty(false);
                 
             } else if (response.status === 404) {
                 console.warn(`Room ID ${roomId} not found.`);
@@ -322,9 +355,48 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({timeLimitSeconds}) => {
                     </div>
                 </div>
             )}
-            <button onClick={saveToDatabase}>
-                Save Room
+
+            {/* Database stuff */}
+            <div style={{ padding: '10px', borderBottom: '1px solid #ccc', marginBottom: '10px' }}>
+                <label>
+                    **Room Name:** <input 
+                        type="text" 
+                        value={roomName} 
+                        onChange={handleRoomNameChange} 
+                        placeholder="Enter Room Name"
+                        style={{ marginLeft: '10px', padding: '5px', width: '250px' }}
+                    />
+                </label>
+                <span style={{ marginLeft: '20px', fontWeight: 'bold' }}>
+                    Current ID: {currentRoomId === null ? 'None (New Room)' : currentRoomId}
+                </span>
+            </div>
+            {/* ------------------------------------------- */}
+
+            {/* ... other content (image area, menu, deleted images) ... */}
+
+            {/* Consolidated Save/Update Button */}
+            <button onClick={saveToDatabase} style={{ fontWeight: 'bold' }}>
+                {currentRoomId === null 
+                    ? '💾 Save New Room (POST)' 
+                    : isDirty // Use isDirty to show the updated status
+                        ? `* 🔄 Update Room (PATCH)`
+                        : '✔️ Saved (No Changes)'
+                }
             </button>
+            
+            {/* Delete Button */}
+            <button 
+                onClick={deleteRoomFromDatabase} 
+                disabled={currentRoomId === null}
+                style={{ marginLeft: '10px', backgroundColor: currentRoomId === null ? '#ccc' : 'red', color: 'white' }}
+            >
+                🗑️ Delete Current Room
+            </button>
+
+            {/* Load Input (uses the helper component added in 3A) */}
+            <LoadRoomInput loadRoom={loadRoomFromDatabase} />
+
             <button onClick={handleExport} className={styles.export_button}>
                 Export HTML File
             </button>
@@ -333,3 +405,35 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({timeLimitSeconds}) => {
 };
 
 export default ImageUploader;
+
+interface LoadRoomInputProps {
+    loadRoom: (id: number) => Promise<void>;
+}
+
+const LoadRoomInput: React.FC<LoadRoomInputProps> = ({ loadRoom }) => {
+    const [idToLoad, setIdToLoad] = useState<string>('');
+
+    const handleLoad = () => {
+        const id = parseInt(idToLoad);
+        if (!isNaN(id)) {
+            loadRoom(id);
+            setIdToLoad(''); // Clear the input after attempting load
+        } else {
+            console.error("Please enter a valid number for Room ID.");
+        }
+    };
+
+    return (
+        <span style={{ marginLeft: '20px', padding: '5px', border: '1px solid #ddd' }}>
+            <label>Load by ID:</label>
+            <input 
+                type="number"
+                value={idToLoad}
+                onChange={(e) => setIdToLoad(e.target.value)}
+                placeholder="Enter ID"
+                style={{ width: '80px', marginLeft: '5px', marginRight: '5px' }}
+            />
+            <button onClick={handleLoad}>📥 Load</button>
+        </span>
+    );
+}

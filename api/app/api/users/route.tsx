@@ -38,7 +38,10 @@ export async function GET(request: NextRequest) {
 // POST – Create new user
 export async function POST(request: NextRequest) {
   try {
-    const { name, appliedImagesData } = await request.json();
+    const body = await request.json();
+    console.log('Received body:', body);
+
+    const { name, appliedImagesData } = body;
 
     if (!name || !appliedImagesData) {
       return new NextResponse('Missing name or image configurations', { status: 400, headers: corsHeaders });

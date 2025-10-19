@@ -30,3 +30,11 @@ module.exports = (sequelize, DataTypes) => {
   });
   return ERConfig;
 };
+
+sequelize.sync({ alter: true })
+  .then(() => {
+      console.log('Database synchronization complete. Tables ready.');
+  })
+  .catch((err) => {
+      console.error('Database synchronization failed:', err);
+});
