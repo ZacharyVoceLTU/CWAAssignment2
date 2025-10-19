@@ -48,7 +48,46 @@
 }
 
 .applied_image {
-    max-width: 200px;
+    max-width: 100px;
     height: auto;
     z-index: 10;
+}
+
+.restoration_area {
+    margin-top: 20px;
+    padding: 10px;
+    border: 1px solid #ffccaa; /* Light orange border */
+    background-color: #fff8f5; /* Light orange background */
+    border-radius: 4px;
+}
+
+.restoration_area h4 {
+    margin-top: 0;
+    margin-bottom: 8px;
+    color: #cc6600; /* Dark orange text */
+    font-size: 0.9em;
+}
+
+.deleted_list {
+    display: flex;
+    gap: 10px;
+}
+
+.deleted_item {
+    padding: 5px 10px;
+    background-color: #ffaa55; /* Medium orange button */
+    color: white;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 0.8em;
+    font-weight: bold;
+    transition: background-color 0.2s;
+    white-space: nowrap; /* Prevent filenames from wrapping */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 150px;
+}
+
+.deleted_item:hover {
+    background-color: #e69138;
 }

@@ -14,6 +14,7 @@ interface AppliedImage {
     hintText: string;
     clueText: string;
     answer: string;
+    isFlipped: boolean;
     fileName: string;
 }
 
@@ -21,75 +22,101 @@ interface ImageUploaderProps {
     timeLimitSeconds: number;
 }
 
-interface SelectedImageMetadata {
-    url: string;
+interface UpdatedMetadata {
     hintText: string;
     clueText: string;
     answer: string;
-    fileName: string
 }
 
-const APIURL = "http://ec2-54-83-190-191.compute-1.amazonaws.com";
+const PRE_PICKED_IMAGES: AppliedImage[] = [
+    {
+        id: 1,
+        url: '/images/Chest_one.png', // Replace with your actual path/URL
+        x: 100, // Initial position
+        y: 100,
+        hintText: 'Hint for Image 1',
+        clueText: 'Clue for Image 1',
+        answer: 'Answer 1',
+        fileName: 'Chest_one.png',
+        isFlipped: false
+    },
+    {
+        id: 2,
+        url: '/images/Chest_two.png', // Replace with your actual path/URL
+        x: 300,
+        y: 100,
+        hintText: 'Hint for Image 2',
+        clueText: 'Clue for Image 2',
+        answer: 'Answer 2',
+        fileName: 'Chest_two.png',
+        isFlipped: false
+    },
+    {
+        id: 3,
+        url: '/images/Chest_three.png', // Replace with your actual path/URL
+        x: 500,
+        y: 100,
+        hintText: 'Hint for Image 3',
+        clueText: 'Clue for Image 3',
+        answer: 'Answer 3',
+        fileName: 'Chest_three.png',
+        isFlipped: false
+    },
+];
+
+const APIURL = "http://ec2-54-174-23-135.compute-1.amazonaws.com";
 
 const ImageUploader: React.FC<ImageUploaderProps> = ({timeLimitSeconds}) => {
-    const [selectedImage, setSelectedImage] = useState<SelectedImageMetadata | null>(null);
-    const [appliedImages, setAppliedImages] = useState<AppliedImage[]>([]);
-    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [appliedImages, setAppliedImages] = useState<AppliedImage[]>(PRE_PICKED_IMAGES);
+    const [deletedImages, setDeletedImages] = useState<AppliedImage[]>([]);
     const [draggingImageId, setDraggingImageId] = useState<number | null>(null);
-
     const [menu, setMenu] = useState<{id: number, x:number, y:number} | null>(null);
 
-    const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file) {
-            const imageUrl = URL.createObjectURL(file);
-            setSelectedImage({
-                url: imageUrl,
-                hintText: '',
-                clueText: '',
-                answer: '',
-                fileName: file.name,
-            })
-        }
-    };
-
-    const clearImage = () => {
-        setSelectedImage(null);
-        if (fileInputRef.current) {
-            fileInputRef.current.value = "";
-        }
-    };
-
-    const applyImage = () => {
-        if (selectedImage && appliedImages.length < 3) {
-            const newImage: AppliedImage = {
-                id: Date.now(),
-                url: selectedImage.url,
-                x: 0, // Initial position
-                y: 0, // Initial position
-                hintText: selectedImage.hintText, // Save the data
-                clueText: selectedImage.clueText, // Save the data
-                answer: selectedImage.answer,
-                fileName: selectedImage.fileName,
-            };
-            setAppliedImages([...appliedImages, newImage]);
-            clearImage();
-        }
-    };
-
     const deleteImage = (imageId: number) => {
-        setAppliedImages(prevImages => prevImages.filter(image => image.id !== imageId));
+    // 1. Find the image to be deleted
+        const imageToDelete = appliedImages.find(image => image.id === imageId);
+        
+        if (imageToDelete) {
+            // 2. Remove it from the applied list
+            setAppliedImages(prevImages => prevImages.filter(image => image.id !== imageId));
+            
+            // 3. Add it to the deleted list (soft delete)
+            setDeletedImages(prevDeleted => [...prevDeleted, imageToDelete]);
+        };
 
         setMenu(null);
-    }
+    }; 
 
-    const handleMetaDataChange = (field: keyof SelectedImageMetadata, value:string) => {
-        if (selectedImage) {
-            setSelectedImage({
-                ...selectedImage,
-                [field]: value,
+    const restoreImage = (imageId: number) => {
+        // Find the image to restore
+        const imageToRestore = deletedImages.find(image => image.id === imageId);
+        
+        if (imageToRestore) {
+            // Remove it from the deleted list
+            setDeletedImages(prevDeleted => prevDeleted.filter(image => image.id !== imageId));
+            
+            // Add it back to the applied list
+            setAppliedImages(prevImages => {
+                // Re-add the image, preserving its old position (x, y)
+                return [...prevImages, imageToRestore].sort((a, b) => a.id - b.id);
             });
         }
+    };
+
+    const handleUpdateMetadata = (id: number, updatedMetadata: UpdatedMetadata) => {
+        setAppliedImages(prevImages => 
+            prevImages.map(image => 
+                image.id === id ? { ...image, ...updatedMetadata } : image
+            )
+        );
+    };
+
+    const handleFlipImage = (imageId: number) => {
+        setAppliedImages(prevImages => 
+            prevImages.map(image => 
+                image.id === imageId ? { ...image, isFlipped: !image.isFlipped } : image
+            )
+        );
     };
 
     // --- Native Drag-and-Drop Logic ---
@@ -146,6 +173,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({timeLimitSeconds}) => {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
+                    // TODO: Add name option
                     name: 'd',
                     appliedImagesData: appliedImages
                 }),
@@ -160,40 +188,77 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({timeLimitSeconds}) => {
         }
     };
 
-    const deleteFromDatabase = async(id: number) => {
-        const response = await fetch(`${APIURL}/api/users?id=${id}`, {
-            method: 'DELETE',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({id}),
-        });
+    const deleteRoomFromDatabase = async (roomId: number) => {
+        // 💡 IMPORTANT: Use the correct API path (e.g., /api/erconfig)
+        try {
+            const response = await fetch(`${APIURL}/api/users?id=${roomId}`, {
+                method: 'DELETE',
+                // No body is strictly required for DELETE with a query parameter ID
+            });
 
-        if (response.ok) {
-            console.log('Image positions deleted successfully');
+            if (response.ok) {
+                console.log(`Room configuration ID ${roomId} deleted successfully.`);
+                // After successful deletion, you would typically clear the local state
+                setAppliedImages(PRE_PICKED_IMAGES); 
+                setDeletedImages([]);
+                // TODO: Add roomId
+                // setCurrentRoomId(null);
+            } else {
+                console.error(`Failed to delete room ID ${roomId}. Status: ${response.status}`);
+            }
+        } catch (error) {
+            console.error('Error deleting room configuration:', error);
         }
-    }
+    };
 
     // Update the image url, x, y
-    const updateDatabase = async(id: number) => {
-        // example for now
-        // const current = users.find((u) => u.id === id);
-        // if (!current) return;
-  
-        // const newStatus = current.lineStatus === 'online' ? 'offline' : 'online';
-  
-        // const res = await fetch(`${APIURL}/api/users?id=${id}`, {
-        //     method: 'PATCH',
-        //     headers: { 'Content-Type': 'application/json' },
-        //     body: JSON.stringify({ ...current, lineStatus: newStatus }),
-        // });
-  
-        // if (res.ok) {
-        //     fetchUsers(); // 🔁 Refetch after update
-        // }
-    }
+    const updateRoomInDatabase = async (roomId: number, roomName: string) => {
+        // 💡 IMPORTANT: Use the correct API path and PATCH method
+        try {
+            const response = await fetch(`${APIURL}/api/users?id=${roomId}`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    name: roomName, // Send the name if it can be updated
+                    appliedImagesData: appliedImages, // Send the full, current state
+                }),
+            });
+            
+            if (response.ok) {
+                console.log(`Room configuration ID ${roomId} updated successfully.`);
+            } else {
+                console.error(`Failed to update room ID ${roomId}. Status: ${response.status}`);
+            }
+        } catch (error) {
+            console.error('Error updating room configuration:', error);
+        }
+    };
 
-    const loadFromDatabase = async() => {
-        // Later
-    }
+    const loadRoomFromDatabase = async (roomId: number) => {
+        // 💡 IMPORTANT: Use the correct API path and GET method
+        try {
+            const response = await fetch(`${APIURL}/api/erconfig?id=${roomId}`);
+            
+            if (response.ok) {
+                const roomData = await response.json();
+                console.log(`Room configuration ID ${roomId} loaded successfully.`);
+                
+                // TODO: Set local state with the data from the database
+                // setAppliedImages(roomData.appliedImagesData || []);
+                // setCurrentRoomId(roomId); 
+                // setDeletedImages([]); // Clear any temporary deleted images
+                
+            } else if (response.status === 404) {
+                console.warn(`Room ID ${roomId} not found.`);
+            } else {
+                console.error(`Failed to load room ID ${roomId}. Status: ${response.status}`);
+            }
+        } catch (error) {
+            console.error('Error loading room configuration:', error);
+        }
+    };
 
     const handleExport = () => {
         // Pass the two necessary pieces of state to the external function
@@ -202,73 +267,6 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({timeLimitSeconds}) => {
 
     return (
         <div>
-            <div className={styles.uploader_controls}>
-                <input
-                    type='file'
-                    accept='image/*'
-                    onChange={handleImageChange}
-                    ref={fileInputRef}
-                />
-            </div>
-
-            {selectedImage && (
-                <>
-                    <div className={styles.image_header_container}>
-                        <h2>Selected Image:</h2>
-                        <button
-                            onClick={clearImage}
-                            className={styles.clear_button}
-                        >
-                            Clear Image
-                        </button>
-                    </div>
-                    <div className={styles.image_display_container}>
-                        <img
-                            src={selectedImage.url}
-                            alt="Selected"
-                            className={styles.thumbnail_image}
-                        />
-                    </div>
-
-                    <div className={styles.metadata_inputs}>
-                        <label htmlFor="hintText">Hint Text:</label>
-                        <input
-                            id="hintText"
-                            type="text"
-                            value={selectedImage.hintText}
-                            onChange={(e) => handleMetaDataChange('hintText', e.target.value)}
-                            placeholder='Enter hint for the image'
-                        />
-
-                        <label htmlFor="clueText">Clue Text:</label>
-                        <input
-                            id="clueText"
-                            type="text"
-                            value={selectedImage.clueText}
-                            onChange={(e) => handleMetaDataChange('clueText', e.target.value)}
-                            placeholder='Enter the clue associated with this image'
-                        />
-
-                        <label htmlFor="answer">Answer:</label>
-                        <input
-                            id="answer"
-                            type="text"
-                            value={selectedImage.answer}
-                            onChange={(e) => handleMetaDataChange('answer', e.target.value)}
-                            placeholder='En ter the correct answer'
-                        />
-                    </div>
-
-                    <button
-                        onClick={applyImage}
-                        className={styles.apply_button}
-                        disabled={appliedImages.length >= 3}
-                    >
-                        Apply Image
-                    </button>
-                </>
-            )}
-
             <div
                 className={styles.applied_image_area}
                 onDragOver={handleDragOver}
@@ -286,6 +284,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({timeLimitSeconds}) => {
                             cursor: 'grab',
                             position: 'absolute',
                             display: 'block',
+                            transform: image.isFlipped ? 'scaleX(-1)' : 'none',
                         }}
                         draggable='true'
                         onDragStart={(e) => handleDragStart(e, image.id)}
@@ -302,9 +301,27 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({timeLimitSeconds}) => {
                     y={menu.y}
                     onClose={closeMenu}
                     onDelete={deleteImage}
+                    onUpdateMetadata={handleUpdateMetadata}
+                    onFlip={handleFlipImage}
                 />
             )}
-
+            {deletedImages.length > 0 && (
+                <div className={styles.restoration_area}>
+                    <h4>Deleted Images (Click to Restore):</h4>
+                    <div className={styles.deleted_list}>
+                        {deletedImages.map(image => (
+                            <div 
+                                key={image.id} 
+                                className={styles.deleted_item}
+                                onClick={() => restoreImage(image.id)}
+                                title={`Restore: ${image.fileName}`}
+                            >
+                                {image.fileName}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
             <button onClick={saveToDatabase}>
                 Save Room
             </button>

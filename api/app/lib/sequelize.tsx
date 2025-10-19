@@ -50,7 +50,6 @@ ERConfig.init(
       allowNull: false,
       defaultValue: []
     },
-    // ✅ Optionally declare these to satisfy TypeScript
     createdAt: {
       type: DataTypes.DATE,
       allowNull: true,
