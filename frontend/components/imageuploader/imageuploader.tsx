@@ -181,39 +181,29 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({timeLimitSeconds}) => {
         markAsDirty(); // 👈 Mark as dirty on every text input
     }
 
-    // Have it update if id exists
-    const saveToDatabase = async() => {
-        // If currentRoomId exists, call update, otherwise call create
-        if (currentRoomId !== null) {
-            // Existing update logic
-            await updateRoomInDatabase(currentRoomId, roomName); 
-            // Check if successful, then:
-            setIsDirty(false); // Reset on successful update
-            return;
-        }
-
-        // CREATE (POST) Logic
+    const saveNewRoom = async() => {
         console.log(`Attempting to SAVE (CREATE) new room: ${roomName}`);
         try {
             const response = await fetch(`${APIURL}/api/users`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    name: roomName, // Uses the user-chosen name
+                    name: roomName,
                     appliedImagesData: appliedImages
                 }),
             });
             if (response.ok) {
                 const result = await response.json();
-                // 💡 ASSUMES your backend returns { id: newId, ... }
                 console.log(`Room configuration saved successfully. ID: ${result.id}`);
-                setCurrentRoomId(result.id); // Set the new ID
-                setIsDirty(false);
+                
+                // Set the new ID and reset state
+                setCurrentRoomId(result.id); 
+                setIsDirty(false); 
             } else {
-                console.error('Failed to save room configuration.');
+                console.error('Failed to save new room configuration.');
             }
         } catch (error) {
-            console.error('Error saving room configuration', error);
+            console.error('Error saving new room configuration', error);
         }
     };
 
@@ -245,22 +235,28 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({timeLimitSeconds}) => {
     };
 
     // Update the image url, x, y
-    const updateRoomInDatabase = async (roomId: number, roomName: string) => {
-        console.log(`Attempting to UPDATE room ID: ${roomId} with name: ${roomName}`);
+    const updateCurrentRoom = async () => {
+        if (currentRoomId === null) {
+            console.warn('Cannot update: No room is currently loaded.');
+            return;
+        }
+
+        console.log(`Attempting to UPDATE room ID: ${currentRoomId} with name: ${roomName}`);
         try {
-            const response = await fetch(`${APIURL}/api/users?id=${roomId}`, {
+            const response = await fetch(`${APIURL}/api/users?id=${currentRoomId}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    name: roomName, // Uses the user-chosen name
-                    appliedImagesData: appliedImages, 
+                    name: roomName,
+                    appliedImagesData: appliedImages,
                 }),
             });
             
             if (response.ok) {
-                console.log(`Room configuration ID ${roomId} updated successfully.`);
+                console.log(`Room configuration ID ${currentRoomId} updated successfully.`);
+                setIsDirty(false); // Reset state on success
             } else {
-                console.error(`Failed to update room ID ${roomId}. Status: ${response.status}`);
+                console.error(`Failed to update room ID ${currentRoomId}. Status: ${response.status}`);
             }
         } catch (error) {
             console.error('Error updating room configuration:', error);
@@ -375,13 +371,29 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({timeLimitSeconds}) => {
 
             {/* ... other content (image area, menu, deleted images) ... */}
 
-            {/* Consolidated Save/Update Button */}
-            <button onClick={saveToDatabase} style={{ fontWeight: 'bold' }}>
+            <button 
+                onClick={saveNewRoom} 
+                style={{ fontWeight: 'bold', backgroundColor: '#28a745', color: 'white' }}
+            >
+                💾 Save As New Room
+            </button>
+
+            <button 
+                onClick={updateCurrentRoom} 
+                disabled={currentRoomId === null || !isDirty} // Disable if no ID or no changes
+                style={{ 
+                    marginLeft: '10px', 
+                    fontWeight: 'bold',
+                    backgroundColor: (currentRoomId !== null && isDirty) ? '#ffc107' : '#ccc',
+                    color: (currentRoomId !== null && isDirty) ? 'black' : 'gray'
+                }}
+            >
+                {/* Text clearly indicates if data will be overwritten */}
                 {currentRoomId === null 
-                    ? '💾 Save New Room (POST)' 
-                    : isDirty // Use isDirty to show the updated status
-                        ? `* 🔄 Update Room (PATCH)`
-                        : '✔️ Saved (No Changes)'
+                    ? 'Overwrite (Load a Room First)' 
+                    : !isDirty 
+                        ? '✔️ Saved (No Changes to Overwrite)'
+                        : `🔄 Overwrite Current Room (ID: ${currentRoomId})`
                 }
             </button>
             
